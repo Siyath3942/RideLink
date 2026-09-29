@@ -1,0 +1,62 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Driver {
+  id                 String          @id @default(uuid())
+  accountId          String          @unique
+  licenseNumber      String          @unique
+  licenseExpiry      DateTime
+  driverStatus       String          @default("ACTIVE") // ACTIVE, INACTIVE, SUSPENDED
+  availabilityStatus String          @default("UNAVAILABLE") // UNAVAILABLE, AVAILABLE, ON_TRIP
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  vehicle            Vehicle?
+  serviceArea        ServiceArea?
+  location           DriverLocation?
+}
+
+model Vehicle {
+  id                 String   @id @default(uuid())
+  driverId           String   @unique
+  driver             Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  registrationNumber String   @unique
+  vehicleType        String   // SEDAN, SUV, VAN, LUXURY, BIKE
+  make               String
+  model              String
+  year               Int
+  color              String
+  capacity           Int
+  vehicleStatus      String   @default("APPROVED") // APPROVED, PENDING, REJECTED
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model ServiceArea {
+  id              String   @id @default(uuid())
+  driverId        String   @unique
+  driver          Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  city            String
+  zoneName        String
+  centerLatitude  Float
+  centerLongitude Float
+  radiusKm        Float    @default(15.0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model DriverLocation {
+  id          String   @id @default(uuid())
+  driverId    String   @unique
+  driver      Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  latitude    Float
+  longitude   Float
+  heading     Float?   @default(0.0)
+  lastUpdated DateTime @default(now()) @updatedAt
+}
