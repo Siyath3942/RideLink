@@ -1,0 +1,248 @@
+{
+  "info": {
+    "_postman_id": "ridelink-driver-vehicle-service-collection",
+    "name": "RideLink - Driver & Vehicle Microservice (Member 2)",
+    "description": "Postman test collection for IT3130 Application Development assignment (Driver & Vehicle Service microservice).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Driver Management",
+      "item": [
+        {
+          "name": "Create Driver Profile",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"acc_postman_001\",\n  \"licenseNumber\": \"DL-POSTMAN-001\",\n  \"licenseExpiry\": \"2029-12-31T00:00:00.000Z\",\n  \"driverStatus\": \"ACTIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/drivers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "drivers"]
+            }
+          }
+        },
+        {
+          "name": "Get All Drivers",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/drivers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "drivers"]
+            }
+          }
+        },
+        {
+          "name": "Get Driver By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/drivers/{{driverId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "drivers", "{{driverId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Driver Status (Active/Inactive)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/drivers/{{driverId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "drivers", "{{driverId}}", "status"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Vehicle Management",
+      "item": [
+        {
+          "name": "Register Vehicle for Driver",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driverId\": \"{{driverId}}\",\n  \"registrationNumber\": \"CAB-POSTMAN-1\",\n  \"vehicleType\": \"SEDAN\",\n  \"make\": \"Toyota\",\n  \"model\": \"Prius\",\n  \"year\": 2022,\n  \"color\": \"White\",\n  \"capacity\": 4,\n  \"vehicleStatus\": \"APPROVED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vehicles",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vehicles"]
+            }
+          }
+        },
+        {
+          "name": "Get Vehicle by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vehicles/{{vehicleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vehicles", "{{vehicleId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Driver Availability",
+      "item": [
+        {
+          "name": "Update Availability to AVAILABLE",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"availabilityStatus\": \"AVAILABLE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/drivers/{{driverId}}/availability",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "drivers", "{{driverId}}", "availability"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Service Area & Location",
+      "item": [
+        {
+          "name": "Update Service Area",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"city\": \"Colombo\",\n  \"zoneName\": \"Central Zone\",\n  \"centerLatitude\": 6.9271,\n  \"centerLongitude\": 79.8612,\n  \"radiusKm\": 15.0\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/drivers/{{driverId}}/service-area",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "drivers", "{{driverId}}", "service-area"]
+            }
+          }
+        },
+        {
+          "name": "Update Simulated Location",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": 6.9271,\n  \"longitude\": 79.8612,\n  \"heading\": 90.0\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/drivers/{{driverId}}/location",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "drivers", "{{driverId}}", "location"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Inter-Service Eligible Driver Search",
+      "item": [
+        {
+          "name": "Retrieve Eligible Available Drivers (Ride Management API)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Internal-Service-Key", "value": "{{internalServiceKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pickupLatitude\": 6.9280,\n  \"pickupLongitude\": 79.8620,\n  \"requiredVehicleType\": \"SEDAN\",\n  \"requiredCapacity\": 4,\n  \"maxSearchRadiusKm\": 20.0\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/drivers/eligible",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "drivers", "eligible"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Negative Scenarios",
+      "item": [
+        {
+          "name": "Negative - Driver Not Found",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/drivers/invalid_driver_id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "drivers", "invalid_driver_id"]
+            }
+          }
+        },
+        {
+          "name": "Negative - Invalid Location Latitude",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": 195.0,\n  \"longitude\": 79.8612\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/drivers/{{driverId}}/location",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "drivers", "{{driverId}}", "location"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

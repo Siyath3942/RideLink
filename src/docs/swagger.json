@@ -1,0 +1,395 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "RideLink - Driver & Vehicle Microservice API",
+    "description": "Backend API documentation for Member 2 (Driver & Vehicle Service) of the IT3130 Application Development assignment. Manages driver operational profiles, vehicles, availability status, service areas, simulated locations, and eligible driver retrieval.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Member 2 - Driver & Vehicle Team",
+      "email": "member2@ridelink.edu"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3002",
+      "description": "Local Development Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Enter your JWT Bearer token issued by Account Service"
+      },
+      "InternalServiceKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Internal-Service-Key",
+        "description": "Secret key for inter-service communication from Ride Management Service"
+      }
+    },
+    "schemas": {
+      "Driver": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "drv_12345" },
+          "accountId": { "type": "string", "example": "acc_998877" },
+          "licenseNumber": { "type": "string", "example": "DL-9081234" },
+          "licenseExpiry": { "type": "string", "format": "date-time", "example": "2028-12-31T23:59:59.000Z" },
+          "driverStatus": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "SUSPENDED"], "example": "ACTIVE" },
+          "availabilityStatus": { "type": "string", "enum": ["UNAVAILABLE", "AVAILABLE", "ON_TRIP"], "example": "AVAILABLE" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Vehicle": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "veh_67890" },
+          "driverId": { "type": "string", "example": "drv_12345" },
+          "registrationNumber": { "type": "string", "example": "CAB-4589" },
+          "vehicleType": { "type": "string", "enum": ["SEDAN", "SUV", "VAN", "LUXURY", "BIKE"], "example": "SEDAN" },
+          "make": { "type": "string", "example": "Toyota" },
+          "model": { "type": "string", "example": "Prius" },
+          "year": { "type": "integer", "example": 2022 },
+          "color": { "type": "string", "example": "Silver" },
+          "capacity": { "type": "integer", "example": 4 },
+          "vehicleStatus": { "type": "string", "enum": ["APPROVED", "PENDING", "REJECTED"], "example": "APPROVED" }
+        }
+      },
+      "ServiceArea": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "sa_11223" },
+          "driverId": { "type": "string", "example": "drv_12345" },
+          "city": { "type": "string", "example": "Colombo" },
+          "zoneName": { "type": "string", "example": "Downtown Central" },
+          "centerLatitude": { "type": "number", "example": 6.9271 },
+          "centerLongitude": { "type": "number", "example": 79.8612 },
+          "radiusKm": { "type": "number", "example": 15.0 }
+        }
+      },
+      "DriverLocation": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "loc_44556" },
+          "driverId": { "type": "string", "example": "drv_12345" },
+          "latitude": { "type": "number", "example": 6.9300 },
+          "longitude": { "type": "number", "example": 79.8600 },
+          "heading": { "type": "number", "example": 90.0 },
+          "lastUpdated": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": { "type": "string", "example": "VALIDATION_ERROR" },
+              "message": { "type": "string", "example": "Invalid request input parameters" },
+              "details": { "type": "object", "nullable": true }
+            }
+          },
+          "timestamp": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  },
+  "security": [
+    { "BearerAuth": [] }
+  ],
+  "paths": {
+    "/api/v1/drivers": {
+      "post": {
+        "summary": "Create Driver Operational Profile",
+        "tags": ["Driver Management"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["accountId", "licenseNumber", "licenseExpiry"],
+                "properties": {
+                  "accountId": { "type": "string", "example": "acc_driver_001" },
+                  "licenseNumber": { "type": "string", "example": "B-9876543" },
+                  "licenseExpiry": { "type": "string", "example": "2029-12-31T00:00:00.000Z" },
+                  "driverStatus": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "SUSPENDED"], "default": "ACTIVE" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Driver profile created successfully" },
+          "400": { "description": "Validation error or expired license" },
+          "409": { "description": "Driver or license number already exists" }
+        }
+      },
+      "get": {
+        "summary": "List Drivers",
+        "tags": ["Driver Management"],
+        "parameters": [
+          { "name": "driverStatus", "in": "query", "schema": { "type": "string" } },
+          { "name": "availabilityStatus", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "List of drivers retrieved successfully" }
+        }
+      }
+    },
+    "/api/v1/drivers/{id}": {
+      "get": {
+        "summary": "Get Driver Profile by ID",
+        "tags": ["Driver Management"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Driver profile found" },
+          "404": { "description": "Driver not found" }
+        }
+      },
+      "put": {
+        "summary": "Update Driver Profile",
+        "tags": ["Driver Management"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "licenseNumber": { "type": "string" },
+                  "licenseExpiry": { "type": "string" },
+                  "driverStatus": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "SUSPENDED"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Driver profile updated" }
+        }
+      }
+    },
+    "/api/v1/drivers/{id}/status": {
+      "patch": {
+        "summary": "Manage Driver Operational Status",
+        "tags": ["Driver Management"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": {
+                  "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "SUSPENDED"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Status updated successfully" }
+        }
+      }
+    },
+    "/api/v1/vehicles": {
+      "post": {
+        "summary": "Register Vehicle for Driver",
+        "tags": ["Vehicle Management"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["driverId", "registrationNumber", "vehicleType", "make", "model", "year", "color", "capacity"],
+                "properties": {
+                  "driverId": { "type": "string" },
+                  "registrationNumber": { "type": "string", "example": "CAB-1234" },
+                  "vehicleType": { "type": "string", "enum": ["SEDAN", "SUV", "VAN", "LUXURY", "BIKE"] },
+                  "make": { "type": "string", "example": "Toyota" },
+                  "model": { "type": "string", "example": "Prius" },
+                  "year": { "type": "integer", "example": 2022 },
+                  "color": { "type": "string", "example": "White" },
+                  "capacity": { "type": "integer", "example": 4 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Vehicle registered successfully" },
+          "400": { "description": "Validation error" },
+          "409": { "description": "Duplicate registration or vehicle already registered for driver" }
+        }
+      }
+    },
+    "/api/v1/vehicles/{id}": {
+      "get": {
+        "summary": "Get Vehicle by ID",
+        "tags": ["Vehicle Management"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Vehicle details retrieved" }
+        }
+      },
+      "put": {
+        "summary": "Update Vehicle Details",
+        "tags": ["Vehicle Management"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "registrationNumber": { "type": "string" },
+                  "make": { "type": "string" },
+                  "model": { "type": "string" },
+                  "color": { "type": "string" },
+                  "capacity": { "type": "integer" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Vehicle updated successfully" }
+        }
+      }
+    },
+    "/api/v1/drivers/{driverId}/availability": {
+      "patch": {
+        "summary": "Update Driver Availability",
+        "tags": ["Driver Availability"],
+        "parameters": [
+          { "name": "driverId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["availabilityStatus"],
+                "properties": {
+                  "availabilityStatus": { "type": "string", "enum": ["AVAILABLE", "UNAVAILABLE", "ON_TRIP"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Availability updated successfully" },
+          "422": { "description": "Business rule constraint failure (inactive status or missing/unapproved vehicle)" }
+        }
+      }
+    },
+    "/api/v1/drivers/{driverId}/service-area": {
+      "put": {
+        "summary": "Set or Update Driver Service Area",
+        "tags": ["Service Area"],
+        "parameters": [
+          { "name": "driverId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["city", "zoneName", "centerLatitude", "centerLongitude"],
+                "properties": {
+                  "city": { "type": "string", "example": "Colombo" },
+                  "zoneName": { "type": "string", "example": "Fort / Pettah Zone" },
+                  "centerLatitude": { "type": "number", "example": 6.9344 },
+                  "centerLongitude": { "type": "number", "example": 79.8428 },
+                  "radiusKm": { "type": "number", "example": 15.0 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Service area updated successfully" }
+        }
+      }
+    },
+    "/api/v1/drivers/{driverId}/location": {
+      "put": {
+        "summary": "Update Simulated Current Driver Location",
+        "tags": ["Simulated Location"],
+        "parameters": [
+          { "name": "driverId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["latitude", "longitude"],
+                "properties": {
+                  "latitude": { "type": "number", "example": 6.9271 },
+                  "longitude": { "type": "number", "example": 79.8612 },
+                  "heading": { "type": "number", "example": 180.0 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Location updated successfully" }
+        }
+      }
+    },
+    "/api/v1/drivers/eligible": {
+      "post": {
+        "summary": "Retrieve Eligible Available Drivers for Ride Request",
+        "tags": ["Inter-Service Ride Matching"],
+        "security": [
+          { "InternalServiceKey": [] },
+          { "BearerAuth": [] }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["pickupLatitude", "pickupLongitude"],
+                "properties": {
+                  "pickupLatitude": { "type": "number", "example": 6.9271 },
+                  "pickupLongitude": { "type": "number", "example": 79.8612 },
+                  "requiredVehicleType": { "type": "string", "enum": ["SEDAN", "SUV", "VAN", "LUXURY", "BIKE"], "example": "SEDAN" },
+                  "requiredCapacity": { "type": "integer", "example": 4 },
+                  "maxSearchRadiusKm": { "type": "number", "example": 20.0 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Eligible drivers retrieved successfully (sorted by spatial distance)" }
+        }
+      }
+    }
+  }
+}
