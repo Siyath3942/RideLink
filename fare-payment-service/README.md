@@ -387,3 +387,41 @@ The Fare & Payment Service is designed to collaborate seamlessly with:
 1. **Surge / Peak Pricing**: Currently calculates standard distance-based fares; dynamic surge multipliers can be introduced based on regional driver availability.
 2. **Real Payment Gateway Integration**: As an academic microservices demonstration, simulated payments are used. Future production releases can integrate Stripe or PayHere SDKs.
 3. **Refunds & Disputes**: Partial refunds and dispute handling workflows are slated for future releases.
+
+---
+
+## 12. Communication Interface Justification & Architectural Comparison
+
+| Evaluation Metric | Synchronous REST (Implemented) | gRPC (Alternative 1) | Asynchronous Message Queue (e.g. RabbitMQ) |
+| :--- | :--- | :--- | :--- |
+| **Protocol / Transport** | HTTP/1.1 or HTTP/2, JSON payloads | HTTP/2, Binary Protocol Buffers | AMQP / TCP, JSON or Avro messages |
+| **Interaction Pattern** | Request-Response (In-band) | Request-Response / Streaming | Publish-Subscribe / Queued (Out-of-band) |
+| **Temporal Coupling** | Tight (both services must be online) | Tight (both services must be online) | Loose (services communicate via durable queues) |
+| **Performance / Latency** | Good; human-readable text payloads | Extremely fast; minimal serialization overhead | High throughput; eventual consistency |
+| **Implementation Complexity** | Low; native Express, standardized tooling | Medium-High; requires `.proto` definitions & codegen | High; requires message broker setup, dead-letter queues |
+| **Tooling & Debugging** | Outstanding (Swagger UI, Postman, Curl) | Requires specialized tools (BloomRPC, Postman gRPC) | Requires broker management dashboard |
+
+### Justification for Selected Approach:
+1. **Fare Estimation & Calculation**: Requires **immediate synchronous response** because the passenger and driver cannot proceed with ride booking or trip closure without immediate access to the exact fare breakdown.
+2. **Uniform Platform Architecture**: RideLink is a homogeneous Node.js/Express ecosystem. Using REST with OpenAPI 3.0 ensures identical design patterns across all 4 team members.
+3. **Resilience Pattern**: In the event of temporary network or service unreachability, the [`RideServiceClient`](./src/services/rideServiceClient.ts) gracefully commits the local payment, generates the passenger receipt, and logs an alert without halting core service workflows.
+
+---
+
+## 13. Viva Examination Q&A Preparation Guide
+
+* **Q: Why does Fare & Payment Service own a separate database instead of sharing with Ride Management?**  
+  *A: Under strict microservices principles (Database-per-Service), sharing databases creates tight coupling, schema conflicts, and security vulnerabilities. Our service stores only stable foreign references (`rideId`, `passengerId`).*
+
+* **Q: How does this service authenticate inter-service calls from Ride Management?**  
+  *A: Requests are authenticated either via the shared `X-Internal-Service-Key` header or a JWT bearer token signed by Account Service with role `SERVICE` or `ADMIN`.*
+
+* **Q: What is the fare calculation formula used by the service?**  
+  *A: Distance Fare = $\text{Distance} \times \text{LKR } 80$. Raw Fare = $\text{LKR } 150 \text{ (Base)} + \text{Distance Fare} + \text{LKR } 30 \text{ (Booking)}$. Final Fare = $\max(\text{LKR } 250 \text{ (Minimum Fare)}, \text{Raw Fare})$.*
+
+* **Q: Why are receipts only generated for successful payments?**  
+  *A: In financial systems, a receipt is a legal proof of transaction settlement. Failed or pending payments must never issue receipts to prevent fraudulent claims.*
+
+* **Q: How is payment failure tested?**  
+  *A: Clients can pass `"simulateFailure": true` in the `POST /api/payments` request body. The service records the payment status as `FAILED` and verifies that no receipt is produced.*
+

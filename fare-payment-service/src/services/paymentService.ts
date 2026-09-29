@@ -1,6 +1,7 @@
 import { prisma } from '../database/prisma';
 import { AppError } from '../utils/AppError';
 import { v4 as uuidv4 } from 'uuid';
+import { rideServiceClient } from './rideServiceClient';
 
 export type PaymentMethod = 'CASH' | 'CARD' | 'WALLET';
 export type PaymentStatus = 'PENDING' | 'SUCCESS' | 'FAILED';
@@ -46,6 +47,22 @@ export class PaymentService {
           paymentMethod,
         },
       });
+    }
+
+    // Interservice interaction: notify Ride Management Service asynchronously
+    if (status === 'SUCCESS') {
+      rideServiceClient
+        .notifyPaymentCompleted({
+          rideId,
+          paymentId: payment.id,
+          amount,
+          paymentMethod,
+          status,
+          transactionReference,
+        })
+        .catch(() => {
+          // Gracefully suppress connection errors in standalone mode
+        });
     }
 
     return { payment, receipt };

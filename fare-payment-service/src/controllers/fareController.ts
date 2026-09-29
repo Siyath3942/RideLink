@@ -51,7 +51,7 @@ export class FareController {
   calculateFinalFare = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { rideId, passengerId, distanceKm } = req.body;
-      const breakdown = this.service.calculateFinalFare(distanceKm);
+      const breakdown = await this.service.calculateFinalFare(rideId, distanceKm);
 
       res.status(200).json({
         success: true,
