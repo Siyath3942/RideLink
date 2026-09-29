@@ -1,0 +1,316 @@
+{
+  "info": {
+    "_postman_id": "e4f8a3d1-9c5b-4e12-87f3-1a2b3c4d5e6f",
+    "name": "RideLink — Fare & Payment Service (Member 4)",
+    "description": "Postman API Collection for Fare & Payment Microservice of RideLink platform.\nPort: 3004\nMember: Member 4",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3004",
+      "type": "string"
+    },
+    {
+      "key": "jwtToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "estimateId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "paymentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "receiptId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testRideId",
+      "value": "ride-uuid-101",
+      "type": "string"
+    },
+    {
+      "key": "testPassengerId",
+      "value": "passenger-uuid-202",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        },
+        "description": "Check if the Fare & Payment microservice is running."
+      }
+    },
+    {
+      "name": "Fares",
+      "item": [
+        {
+          "name": "1. Estimate Fare (POST)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.id) {",
+                  "    pm.collectionVariables.set('estimateId', jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rideId\": \"{{testRideId}}\",\n  \"passengerId\": \"{{testPassengerId}}\",\n  \"distanceKm\": 5.0\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/fares/estimate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "fares", "estimate"]
+            },
+            "description": "Calculate estimated ride fare and save to database."
+          }
+        },
+        {
+          "name": "2. Get Estimate By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/fares/estimate/{{estimateId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "fares", "estimate", "{{estimateId}}"]
+            },
+            "description": "Retrieve previously calculated fare estimate."
+          }
+        },
+        {
+          "name": "3. Calculate Final Fare (POST)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rideId\": \"{{testRideId}}\",\n  \"passengerId\": \"{{testPassengerId}}\",\n  \"distanceKm\": 7.5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/fares/final",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "fares", "final"]
+            },
+            "description": "Calculate final fare for completed ride with breakdown."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "1. Create Payment - CARD (Success)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.payment) {",
+                  "    pm.collectionVariables.set('paymentId', jsonData.data.payment.id);",
+                  "}",
+                  "if (jsonData.data && jsonData.data.receipt) {",
+                  "    pm.collectionVariables.set('receiptId', jsonData.data.receipt.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rideId\": \"{{testRideId}}\",\n  \"passengerId\": \"{{testPassengerId}}\",\n  \"amount\": 580,\n  \"paymentMethod\": \"CARD\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments"]
+            },
+            "description": "Create a simulated payment using CARD. Generates a receipt upon success."
+          }
+        },
+        {
+          "name": "2. Create Payment - CASH (Success)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rideId\": \"ride-cash-001\",\n  \"passengerId\": \"{{testPassengerId}}\",\n  \"amount\": 250,\n  \"paymentMethod\": \"CASH\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments"]
+            },
+            "description": "Create a simulated payment using CASH."
+          }
+        },
+        {
+          "name": "3. Create Payment - WALLET (Success)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rideId\": \"ride-wallet-001\",\n  \"passengerId\": \"{{testPassengerId}}\",\n  \"amount\": 450,\n  \"paymentMethod\": \"WALLET\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments"]
+            },
+            "description": "Create a simulated payment using digital WALLET."
+          }
+        },
+        {
+          "name": "4. Create Payment - Simulated Failure",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rideId\": \"ride-failed-001\",\n  \"passengerId\": \"{{testPassengerId}}\",\n  \"amount\": 650,\n  \"paymentMethod\": \"CARD\",\n  \"simulateFailure\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments"]
+            },
+            "description": "Simulates a payment failure (no receipt generated)."
+          }
+        },
+        {
+          "name": "5. Get Payment By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/{{paymentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", "{{paymentId}}"]
+            },
+            "description": "Retrieve payment record and its associated receipt."
+          }
+        },
+        {
+          "name": "6. Get Payments By Ride ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/ride/{{testRideId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", "ride", "{{testRideId}}"]
+            },
+            "description": "Retrieve all payment transactions for a ride."
+          }
+        },
+        {
+          "name": "7. Get Payment History By Passenger ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/passenger/{{testPassengerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", "passenger", "{{testPassengerId}}"]
+            },
+            "description": "Retrieve payment history for a passenger."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Receipts",
+      "item": [
+        {
+          "name": "1. Get Receipt By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/receipts/{{receiptId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "receipts", "{{receiptId}}"]
+            },
+            "description": "Retrieve a payment receipt by its unique ID."
+          }
+        },
+        {
+          "name": "2. Get Receipt By Ride ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/receipts/ride/{{testRideId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "receipts", "ride", "{{testRideId}}"]
+            },
+            "description": "Retrieve the receipt associated with a specific ride."
+          }
+        }
+      ]
+    }
+  ]
+}

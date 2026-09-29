@@ -1,0 +1,563 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "RideLink — Fare & Payment Microservice API",
+    "description": "REST API documentation for the Fare & Payment microservice of the RideLink ride-sharing platform. This service handles fare estimation, final fare calculation, simulated payments, and receipt generation.\n\n**Member 4** — IT3130 Application Development Group Assignment",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Member 4 — Fare & Payment Service Team"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3004",
+      "description": "Local Development Server"
+    }
+  ],
+  "tags": [
+    { "name": "Health", "description": "Service health check" },
+    { "name": "Fares", "description": "Fare estimation and calculation" },
+    { "name": "Payments", "description": "Simulated payment processing" },
+    { "name": "Receipts", "description": "Payment receipt retrieval" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT token issued by the Account Service"
+      }
+    },
+    "schemas": {
+      "FareEstimate": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "rideId": { "type": "string" },
+          "passengerId": { "type": "string" },
+          "distanceKm": { "type": "number", "example": 5.0 },
+          "baseFare": { "type": "number", "example": 150 },
+          "distanceFare": { "type": "number", "example": 400 },
+          "bookingFee": { "type": "number", "example": 30 },
+          "totalFare": { "type": "number", "example": 580 },
+          "currency": { "type": "string", "example": "LKR" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "FareBreakdown": {
+        "type": "object",
+        "properties": {
+          "rideId": { "type": "string" },
+          "passengerId": { "type": "string" },
+          "distanceKm": { "type": "number", "example": 5.0 },
+          "baseFare": { "type": "number", "example": 150 },
+          "distanceFare": { "type": "number", "example": 400 },
+          "bookingFee": { "type": "number", "example": 30 },
+          "totalFare": { "type": "number", "example": 580 },
+          "currency": { "type": "string", "example": "LKR" }
+        }
+      },
+      "Payment": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "rideId": { "type": "string" },
+          "passengerId": { "type": "string" },
+          "amount": { "type": "number", "example": 580 },
+          "paymentMethod": { "type": "string", "enum": ["CASH", "CARD", "WALLET"] },
+          "status": { "type": "string", "enum": ["PENDING", "SUCCESS", "FAILED"] },
+          "transactionReference": { "type": "string", "example": "TXN-A1B2C3D4-1695000000000" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "receipt": { "$ref": "#/components/schemas/Receipt" }
+        }
+      },
+      "Receipt": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "paymentId": { "type": "string", "format": "uuid" },
+          "rideId": { "type": "string" },
+          "passengerId": { "type": "string" },
+          "amount": { "type": "number", "example": 580 },
+          "currency": { "type": "string", "example": "LKR" },
+          "paymentMethod": { "type": "string", "enum": ["CASH", "CARD", "WALLET"] },
+          "issuedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": { "type": "string" },
+              "message": { "type": "string" },
+              "details": {}
+            }
+          },
+          "timestamp": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  },
+  "security": [{ "BearerAuth": [] }],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Service health check",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Service is running",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "UP" },
+                    "service": { "type": "string", "example": "Fare & Payment Service (Member 4)" },
+                    "timestamp": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fares/estimate": {
+      "post": {
+        "tags": ["Fares"],
+        "summary": "Calculate and save a fare estimate",
+        "description": "Accepts ride ID, passenger ID, and distance to calculate a detailed fare breakdown. The estimate is saved in the database.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["rideId", "passengerId", "distanceKm"],
+                "properties": {
+                  "rideId": { "type": "string", "example": "ride-001" },
+                  "passengerId": { "type": "string", "example": "passenger-001" },
+                  "distanceKm": { "type": "number", "example": 5.0, "minimum": 0, "exclusiveMinimum": true }
+                }
+              },
+              "example": {
+                "rideId": "ride-001",
+                "passengerId": "passenger-001",
+                "distanceKm": 5.0
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Fare estimate calculated and saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string" },
+                    "data": { "$ref": "#/components/schemas/FareEstimate" }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "Fare estimate calculated successfully",
+                  "data": {
+                    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                    "rideId": "ride-001",
+                    "passengerId": "passenger-001",
+                    "distanceKm": 5.0,
+                    "baseFare": 150,
+                    "distanceFare": 400,
+                    "bookingFee": 30,
+                    "totalFare": 580,
+                    "currency": "LKR",
+                    "createdAt": "2026-09-29T10:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/api/fares/estimate/{id}": {
+      "get": {
+        "tags": ["Fares"],
+        "summary": "Retrieve a saved fare estimate",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Fare estimate ID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Fare estimate retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/FareEstimate" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Fare estimate not found",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/api/fares/final": {
+      "post": {
+        "tags": ["Fares"],
+        "summary": "Calculate the final fare for a completed ride",
+        "description": "Accepts the ride ID, passenger ID, and actual distance to compute the final fare breakdown. This endpoint does not persist the result — use the payment endpoint to record the transaction.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["rideId", "passengerId", "distanceKm"],
+                "properties": {
+                  "rideId": { "type": "string", "example": "ride-001" },
+                  "passengerId": { "type": "string", "example": "passenger-001" },
+                  "distanceKm": { "type": "number", "example": 5.0, "minimum": 0, "exclusiveMinimum": true }
+                }
+              },
+              "example": {
+                "rideId": "ride-001",
+                "passengerId": "passenger-001",
+                "distanceKm": 5.0
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Final fare calculated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string" },
+                    "data": { "$ref": "#/components/schemas/FareBreakdown" }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "Final fare calculated successfully",
+                  "data": {
+                    "rideId": "ride-001",
+                    "passengerId": "passenger-001",
+                    "distanceKm": 5.0,
+                    "baseFare": 150,
+                    "distanceFare": 400,
+                    "bookingFee": 30,
+                    "totalFare": 580,
+                    "currency": "LKR"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/api/payments": {
+      "post": {
+        "tags": ["Payments"],
+        "summary": "Create a simulated payment",
+        "description": "Creates a payment record for a ride. Supports CASH, CARD, and WALLET methods. Pass `simulateFailure: true` to test failure handling. A receipt is generated only for successful payments.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["rideId", "passengerId", "amount", "paymentMethod"],
+                "properties": {
+                  "rideId": { "type": "string", "example": "ride-001" },
+                  "passengerId": { "type": "string", "example": "passenger-001" },
+                  "amount": { "type": "number", "example": 580 },
+                  "paymentMethod": { "type": "string", "enum": ["CASH", "CARD", "WALLET"], "example": "CARD" },
+                  "simulateFailure": { "type": "boolean", "default": false, "description": "Set to true to simulate a failed payment (for testing)" }
+                }
+              },
+              "examples": {
+                "Successful Payment": {
+                  "value": {
+                    "rideId": "ride-001",
+                    "passengerId": "passenger-001",
+                    "amount": 580,
+                    "paymentMethod": "CARD"
+                  }
+                },
+                "Failed Payment (Simulated)": {
+                  "value": {
+                    "rideId": "ride-002",
+                    "passengerId": "passenger-002",
+                    "amount": 300,
+                    "paymentMethod": "WALLET",
+                    "simulateFailure": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Payment processed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "payment": { "$ref": "#/components/schemas/Payment" },
+                        "receipt": { "$ref": "#/components/schemas/Receipt" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Payment failed (simulated)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Payment processing failed (simulated failure)" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "payment": { "$ref": "#/components/schemas/Payment" },
+                        "receipt": { "type": "null" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/api/payments/{id}": {
+      "get": {
+        "tags": ["Payments"],
+        "summary": "Retrieve payment by ID",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Payment ID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payment details retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/Payment" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Payment not found",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/api/payments/ride/{rideId}": {
+      "get": {
+        "tags": ["Payments"],
+        "summary": "Retrieve payments for a ride",
+        "parameters": [
+          { "name": "rideId", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Ride ID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payments for the ride",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "count": { "type": "integer" },
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Payment" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/api/payments/passenger/{passengerId}": {
+      "get": {
+        "tags": ["Payments"],
+        "summary": "Retrieve payment history for a passenger",
+        "parameters": [
+          { "name": "passengerId", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Passenger ID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payment history for the passenger",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "count": { "type": "integer" },
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Payment" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/api/receipts/{id}": {
+      "get": {
+        "tags": ["Receipts"],
+        "summary": "Retrieve a receipt by ID",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Receipt ID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Receipt details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/Receipt" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Receipt not found",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/api/receipts/ride/{rideId}": {
+      "get": {
+        "tags": ["Receipts"],
+        "summary": "Retrieve the receipt for a ride",
+        "parameters": [
+          { "name": "rideId", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Ride ID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Receipt for the ride",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/Receipt" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Receipt not found",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    }
+  }
+}
